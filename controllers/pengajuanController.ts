@@ -8,7 +8,7 @@ export const createPengajuan = async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
     
     const mahasiswa = await prisma.mahasiswa.findUnique({
-      where: { userId }
+      where: { userId: userId! }
     });
     
     if (!mahasiswa) {
@@ -39,7 +39,7 @@ export const getPengajuanByMahasiswa = async (req: AuthRequest, res: Response) =
     const userId = req.user?.userId;
     
     const mahasiswa = await prisma.mahasiswa.findUnique({
-      where: { userId }
+      where: { userId: userId! }
     });
     
     if (!mahasiswa) {
@@ -87,9 +87,10 @@ export const approvePengajuan = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { dosenPembimbingId, catatan } = req.body;
+    const pengajuanId = Array.isArray(id) ? id[0] : id;
     
     const pengajuan = await prisma.pengajuanJudul.update({
-      where: { id },
+      where: { id: pengajuanId },
       data: {
         status: 'APPROVED',
         dosenPembimbingId,
@@ -98,7 +99,6 @@ export const approvePengajuan = async (req: Request, res: Response) => {
       }
     });
     
-    // Update kuota dosen
     if (dosenPembimbingId) {
       await prisma.dosen.update({
         where: { id: dosenPembimbingId },
@@ -121,9 +121,10 @@ export const rejectPengajuan = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { catatan } = req.body;
+    const pengajuanId = Array.isArray(id) ? id[0] : id;
     
     const pengajuan = await prisma.pengajuanJudul.update({
-      where: { id },
+      where: { id: pengajuanId },
       data: {
         status: 'REJECTED',
         catatan

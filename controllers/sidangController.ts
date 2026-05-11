@@ -55,7 +55,7 @@ export const getJadwalSidangByMahasiswa = async (req: AuthRequest, res: Response
     const userId = req.user?.userId;
     
     const mahasiswa = await prisma.mahasiswa.findUnique({
-      where: { userId }
+      where: { userId: userId! }
     });
     
     if (!mahasiswa) {
@@ -84,9 +84,10 @@ export const updateJadwalSidang = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { tanggal, jam, ruang, status } = req.body;
+    const jadwalId = Array.isArray(id) ? id[0] : id;
     
     const jadwal = await prisma.jadwalSidang.update({
-      where: { id },
+      where: { id: jadwalId },
       data: {
         tanggal: tanggal ? new Date(tanggal) : undefined,
         jam,
@@ -109,9 +110,10 @@ export const updateJadwalSidang = async (req: Request, res: Response) => {
 export const cancelJadwalSidang = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const jadwalId = Array.isArray(id) ? id[0] : id;
     
     const jadwal = await prisma.jadwalSidang.update({
-      where: { id },
+      where: { id: jadwalId },
       data: { status: 'CANCELLED' }
     });
     

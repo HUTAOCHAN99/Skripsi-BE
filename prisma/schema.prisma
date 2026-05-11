@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://postgres:Skripsi2026!@/skripsi_db?host=/cloudsql/angelic-bee-477417-t8:asia-southeast2:skripsi-db"
+  url      = env("DATABASE_URL")
 }
 
 model User {

@@ -25,9 +25,10 @@ export const getAllDosen = async (req: Request, res: Response) => {
 export const getDosenById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const dosenId = Array.isArray(id) ? id[0] : id;
     
     const dosen = await prisma.dosen.findUnique({
-      where: { id },
+      where: { id: dosenId },
       include: {
         user: {
           select: { email: true }
@@ -56,13 +57,12 @@ export const createDosen = async (req: Request, res: Response) => {
   try {
     const { email, password, nama, nip, bidangKeahlian, kuota } = req.body;
     
-    // ✅ FIX: Hash password before saving
     const hashedPassword = await hashPassword(password);
     
     const user = await prisma.user.create({
       data: {
         email,
-        password: hashedPassword, // Use hashed password
+        password: hashedPassword,
         role: 'DOSEN'
       }
     });
@@ -92,9 +92,10 @@ export const updateDosen = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { nama, bidangKeahlian, kuota, noTelp } = req.body;
+    const dosenId = Array.isArray(id) ? id[0] : id;
     
     const dosen = await prisma.dosen.update({
-      where: { id },
+      where: { id: dosenId },
       data: {
         nama,
         bidangKeahlian,
@@ -117,8 +118,9 @@ export const updateDosen = async (req: Request, res: Response) => {
 export const deleteDosen = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const dosenId = Array.isArray(id) ? id[0] : id;
     
-    const dosen = await prisma.dosen.findUnique({ where: { id } });
+    const dosen = await prisma.dosen.findUnique({ where: { id: dosenId } });
     if (!dosen) {
       return res.status(404).json({ error: 'Dosen tidak ditemukan' });
     }

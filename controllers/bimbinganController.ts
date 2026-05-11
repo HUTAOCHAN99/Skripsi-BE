@@ -8,14 +8,13 @@ export const createLogBimbingan = async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
     
     const dosen = await prisma.dosen.findUnique({
-      where: { userId }
+      where: { userId: userId! }
     });
     
     if (!dosen) {
       return res.status(404).json({ error: 'Dosen tidak ditemukan' });
     }
     
-    // Hitung pertemuan ke berapa
     const count = await prisma.logBimbingan.count({
       where: { mahasiswaId }
     });
@@ -48,7 +47,7 @@ export const getLogBimbinganByMahasiswa = async (req: AuthRequest, res: Response
     const userId = req.user?.userId;
     
     const mahasiswa = await prisma.mahasiswa.findUnique({
-      where: { userId }
+      where: { userId: userId! }
     });
     
     if (!mahasiswa) {
@@ -94,9 +93,10 @@ export const getAllLogBimbingan = async (req: Request, res: Response) => {
 export const approveLogBimbingan = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const logId = Array.isArray(id) ? id[0] : id;
     
     const log = await prisma.logBimbingan.update({
-      where: { id },
+      where: { id: logId },
       data: { status: 'APPROVED' }
     });
     
@@ -114,9 +114,10 @@ export const approveLogBimbingan = async (req: Request, res: Response) => {
 export const rejectLogBimbingan = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const logId = Array.isArray(id) ? id[0] : id;
     
     const log = await prisma.logBimbingan.update({
-      where: { id },
+      where: { id: logId },
       data: { status: 'REJECTED' }
     });
     
