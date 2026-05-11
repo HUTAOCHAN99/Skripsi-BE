@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://postgres:Skripsi2026!@/skripsi_db?host=/cloudsql/angelic-bee-477417-t8:asia-southeast2:skripsi-db"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(MAHASISWA)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  mahasiswa Mahasiswa?
+  dosen     Dosen?
+}
+
+model Mahasiswa {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id])
+  nama       String
+  nim        String   @unique
+  angkatan   Int
+  noTelp     String?
+  alamat     String?
+  pengajuanJudul PengajuanJudul[]
+  logBimbingan   LogBimbingan[]
+  jadwalSidang   JadwalSidang?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Dosen {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id])
+  nama       String
+  nip        String   @unique
+  bidangKeahlian String
+  noTelp     String?
+  kuota      Int      @default(5)
+  terisi     Int      @default(0)
+  pembimbing PengajuanJudul[]
+  jadwalSebagaiPenguji JadwalSidang[] @relation("penguji")
+  jadwalSebagaiPembimbing JadwalSidang[] @relation("pembimbing")
+  logBimbingan LogBimbingan[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PengajuanJudul {
+  id              String            @id @default(cuid())
+  mahasiswaId     String
+  mahasiswa       Mahasiswa         @relation(fields: [mahasiswaId], references: [id])
+  judul           String
+  abstrak         String?
+  dosenPembimbingId String?
+  dosenPembimbing   Dosen?          @relation(fields: [dosenPembimbingId], references: [id])
+  status          StatusPengajuan   @default(PENDING)
+  catatan         String?
+  tglAjukan       DateTime          @default(now())
+  tglApproved     DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LogBimbingan {
+  id          String   @id @default(cuid())
+  mahasiswaId String
+  mahasiswa   Mahasiswa @relation(fields: [mahasiswaId], references: [id])
+  dosenId     String
+  dosen       Dosen    @relation(fields: [dosenId], references: [id])
+  pertemuanKe Int
+  tanggal     DateTime
+  topik       String
+  catatan     String
+  status      StatusBimbingan @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model JadwalSidang {
+  id               String   @id @default(cuid())
+  mahasiswaId      String   @unique
+  mahasiswa        Mahasiswa @relation(fields: [mahasiswaId], references: [id])
+  dosenPembimbingId String
+  dosenPembimbing  Dosen    @relation("pembimbing", fields: [dosenPembimbingId], references: [id])
+  dosenPengujiId   String
+  dosenPenguji     Dosen    @relation("penguji", fields: [dosenPengujiId], references: [id])
+  tanggal          DateTime
+  jam              String
+  ruang            String
+  status           StatusSidang @default(SCHEDULED)
+  hasil           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  DOSEN
+  MAHASISWA
+}
+
+enum StatusPengajuan {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum StatusBimbingan {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum StatusSidang {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}

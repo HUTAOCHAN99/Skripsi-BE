@@ -1,0 +1,37 @@
+FROM node:20-alpine AS builder
+
+# Install Python dan build tools untuk Prisma
+RUN apk add --no-cache python3 make g++
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Install dependencies
+RUN npm ci --only=production || npm install --production
+
+# Generate Prisma client
+RUN npx prisma generate
+
+FROM node:20-alpine
+
+RUN apk add --no-cache python3 dumb-init
+
+WORKDIR /app
+
+# Copy from builder
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/prisma ./prisma
+COPY . .
+
+# Build TypeScript
+RUN npm run build || echo "No build script"
+
+EXPOSE 5000
+
+USER node
+
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/app.js"]
