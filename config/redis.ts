@@ -7,8 +7,9 @@ const redisClient = createClient({
 redisClient.on('error', (err) => console.error('Redis Client Error', err));
 redisClient.on('connect', () => console.log('Redis Connected'));
 
-export default redisClient;
-
-export function connect() {
-  throw new Error('Function not implemented.');
+export async function connect() {
+  await redisClient.connect();
+  return redisClient;
 }
+
+export default redisClient;

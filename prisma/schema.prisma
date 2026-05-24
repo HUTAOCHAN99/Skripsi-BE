@@ -8,96 +8,96 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id        String     @id @default(cuid())
+  email     String     @unique
   password  String
-  role      Role     @default(MAHASISWA)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  mahasiswa Mahasiswa?
+  role      Role       @default(MAHASISWA)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   dosen     Dosen?
+  mahasiswa Mahasiswa?
 }
 
 model Mahasiswa {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  user       User     @relation(fields: [userId], references: [id])
-  nama       String
-  nim        String   @unique
-  angkatan   Int
-  noTelp     String?
-  alamat     String?
-  pengajuanJudul PengajuanJudul[]
-  logBimbingan   LogBimbingan[]
+  id             String           @id @default(cuid())
+  userId         String           @unique
+  nama           String
+  nim            String           @unique
+  angkatan       Int
+  noTelp         String?
+  alamat         String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
   jadwalSidang   JadwalSidang?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  logBimbingan   LogBimbingan[]
+  user           User             @relation(fields: [userId], references: [id])
+  pengajuanJudul PengajuanJudul[]
 }
 
 model Dosen {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  user       User     @relation(fields: [userId], references: [id])
-  nama       String
-  nip        String   @unique
-  bidangKeahlian String
-  noTelp     String?
-  kuota      Int      @default(5)
-  terisi     Int      @default(0)
-  pembimbing PengajuanJudul[]
-  jadwalSebagaiPenguji JadwalSidang[] @relation("penguji")
-  jadwalSebagaiPembimbing JadwalSidang[] @relation("pembimbing")
-  logBimbingan LogBimbingan[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                      String           @id @default(cuid())
+  userId                  String           @unique
+  nama                    String
+  nip                     String           @unique
+  bidangKeahlian          String
+  noTelp                  String?
+  kuota                   Int              @default(5)
+  terisi                  Int              @default(0)
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+  user                    User             @relation(fields: [userId], references: [id])
+  jadwalSebagaiPembimbing JadwalSidang[]   @relation("pembimbing")
+  jadwalSebagaiPenguji    JadwalSidang[]   @relation("penguji")
+  logBimbingan            LogBimbingan[]
+  pembimbing              PengajuanJudul[]
 }
 
 model PengajuanJudul {
-  id              String            @id @default(cuid())
-  mahasiswaId     String
-  mahasiswa       Mahasiswa         @relation(fields: [mahasiswaId], references: [id])
-  judul           String
-  abstrak         String?
+  id                String          @id @default(cuid())
+  mahasiswaId       String
+  judul             String
+  abstrak           String?
   dosenPembimbingId String?
+  status            StatusPengajuan @default(PENDING)
+  catatan           String?
+  tglAjukan         DateTime        @default(now())
+  tglApproved       DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
   dosenPembimbing   Dosen?          @relation(fields: [dosenPembimbingId], references: [id])
-  status          StatusPengajuan   @default(PENDING)
-  catatan         String?
-  tglAjukan       DateTime          @default(now())
-  tglApproved     DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  mahasiswa         Mahasiswa       @relation(fields: [mahasiswaId], references: [id])
 }
 
 model LogBimbingan {
-  id          String   @id @default(cuid())
+  id          String          @id @default(cuid())
   mahasiswaId String
-  mahasiswa   Mahasiswa @relation(fields: [mahasiswaId], references: [id])
   dosenId     String
-  dosen       Dosen    @relation(fields: [dosenId], references: [id])
   pertemuanKe Int
   tanggal     DateTime
   topik       String
   catatan     String
   status      StatusBimbingan @default(PENDING)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  dosen       Dosen           @relation(fields: [dosenId], references: [id])
+  mahasiswa   Mahasiswa       @relation(fields: [mahasiswaId], references: [id])
 }
 
 model JadwalSidang {
-  id               String   @id @default(cuid())
-  mahasiswaId      String   @unique
-  mahasiswa        Mahasiswa @relation(fields: [mahasiswaId], references: [id])
+  id                String       @id @default(cuid())
+  mahasiswaId       String       @unique
   dosenPembimbingId String
-  dosenPembimbing  Dosen    @relation("pembimbing", fields: [dosenPembimbingId], references: [id])
-  dosenPengujiId   String
-  dosenPenguji     Dosen    @relation("penguji", fields: [dosenPengujiId], references: [id])
-  tanggal          DateTime
-  jam              String
-  ruang            String
-  status           StatusSidang @default(SCHEDULED)
-  hasil           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  dosenPengujiId    String
+  tanggal           DateTime
+  jam               String
+  ruang             String
+  status            StatusSidang @default(SCHEDULED)
+  hasil             String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  dosenPembimbing   Dosen        @relation("pembimbing", fields: [dosenPembimbingId], references: [id])
+  dosenPenguji      Dosen        @relation("penguji", fields: [dosenPengujiId], references: [id])
+  mahasiswa         Mahasiswa    @relation(fields: [mahasiswaId], references: [id])
 }
 
 enum Role {

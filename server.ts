@@ -1,72 +1,121 @@
 import express from 'express';
 import cors from 'cors';
-import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import prisma from './config/database';
+import { errorHandler } from './middleware/errorHandler';
+import authRoutes from './routes/authRoutes';
+import pengajuanRoutes from './routes/pengajuanRoutes';
+import bimbinganRoutes from './routes/bimbinganRoutes';
+import sidangRoutes from './routes/sidangRoutes';
+import dosenRoutes from './routes/dosenRoutes';
 
 dotenv.config();
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '8080', 10);
-
-console.log('=================================');
-console.log('🚀 Starting Skripsi Backend Server');
-console.log('=================================');
-console.log(`📦 PORT: ${PORT}`);
-console.log(`📦 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-
-// Setup database untuk Cloud Run
-if (process.env.K_SERVICE) {
-  const connectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
-  if (connectionName) {
-    const databaseUrl = `postgresql://postgres:Skripsi2026!@/skripsi_db?host=/cloudsql/${connectionName}`;
-    process.env.DATABASE_URL = databaseUrl;
-    console.log('✅ Cloud SQL configured');
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.NODE_ENV === 'production' 
+      ? [process.env.FRONTEND_URL || 'https://skripsi-frontend-xxxx-uc.a.run.app']
+      : ['http://localhost:3000', 'http://localhost:3001'],
+    credentials: true
   }
-}
+});
 
-// Prisma Client
-const prisma = new PrismaClient();
-
-// Middleware
-app.use(cors());
+// ============ MIDDLEWARE ============
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Health check (sederhana dulu)
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    port: PORT
+// ============ SOCKET.IO ============
+io.on('connection', (socket) => {
+  console.log('Client connected:', socket.id);
+  socket.on('join-room', (userId) => {
+    socket.join(userId);
+    console.log(`User ${userId} joined room`);
+  });
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
   });
 });
 
-app.get('/db-test', async (req, res) => {
-  try {
-    await prisma.$connect();
-    const result = await prisma.$queryRaw`SELECT NOW() as time`;
-    res.json({ success: true, time: result });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+// ============ ROUTES ============
+app.use('/api/auth', authRoutes);
+app.use('/api/pengajuan', pengajuanRoutes);
+app.use('/api/bimbingan', bimbinganRoutes);
+app.use('/api/sidang', sidangRoutes);
+app.use('/api/dosen', dosenRoutes);
+
+// ============ HEALTH CHECK ============
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
 app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Skripsi API Running', 
-    status: 'ok',
-    timestamp: new Date().toISOString()
+  res.json({ message: 'Skripsi TA System API', status: 'running' });
+});
+
+// ============ ERROR HANDLER ============
+app.use(errorHandler);
+
+// ============ START SERVER ============
+const PORT = parseInt(process.env.PORT || '8080', 10);
+const HOST = '0.0.0.0';
+
+async function startServer() {
+  try {
+    // Setup database untuk Cloud Run
+    if (process.env.K_SERVICE) {
+      const connectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
+      if (connectionName) {
+        const databaseUrl = `postgresql://postgres:Skripsi2026!@/skripsi_db?host=/cloudsql/${connectionName}`;
+        process.env.DATABASE_URL = databaseUrl;
+        console.log('✅ Cloud SQL configured');
+      }
+    }
+
+    await prisma.$connect();
+    console.log('✅ Database connected');
+    
+    httpServer.listen(PORT, HOST, () => {
+      console.log(`=================================`);
+      console.log(`🚀 Server running on http://${HOST}:${PORT}`);
+      console.log(`📍 Health: http://${HOST}:${PORT}/health`);
+      console.log(`📍 API: http://${HOST}:${PORT}/api`);
+      console.log(`=================================`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
+
+// ============ GRACEFUL SHUTDOWN ============
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, closing gracefully...');
+  await prisma.$disconnect();
+  httpServer.close(() => {
+    console.log('Server closed');
+    process.exit(0);
   });
 });
 
-// Start server - HARUS listen di 0.0.0.0
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server running on http://0.0.0.0:${PORT}`);
-  console.log(`📍 Health: http://0.0.0.0:${PORT}/health`);
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, closing gracefully...');
+  await prisma.$disconnect();
+  httpServer.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, closing...');
-  await prisma.$disconnect();
-  process.exit(0);
-});
+export { io };
