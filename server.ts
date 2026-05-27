@@ -72,15 +72,6 @@ const HOST = '0.0.0.0';
 async function startServer() {
   try {
     // Setup database untuk Cloud Run
-    if (process.env.K_SERVICE) {
-      const connectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
-      if (connectionName) {
-        const databaseUrl = `postgresql://postgres:Skripsi2026!@/skripsi_db?host=/cloudsql/${connectionName}`;
-        process.env.DATABASE_URL = databaseUrl;
-        console.log('✅ Cloud SQL configured');
-      }
-    }
-
     await prisma.$connect();
     console.log('✅ Database connected');
     
