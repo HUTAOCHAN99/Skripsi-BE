@@ -77,32 +77,35 @@ const HOST = "0.0.0.0";
 
 async function startServer() {
   try {
-    // Setup database untuk Cloud Run
     if (process.env.K_SERVICE) {
       const connectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
+
       if (connectionName) {
         const databaseUrl = `postgresql://postgres:Skripsi2026%21@/skripsi_db?host=/cloudsql/${connectionName}`;
+
         process.env.DATABASE_URL = databaseUrl;
-        console.log("✅ Cloud SQL configured with connection:", connectionName);
+
+        console.log("✅ Cloud SQL configured:", connectionName);
       } else {
-        console.error("❌ CLOUD_SQL_CONNECTION_NAME not set in production!");
-        process.exit(1);
+        console.error("❌ CLOUD_SQL_CONNECTION_NAME missing");
       }
     }
+
     console.log("K_SERVICE =", process.env.K_SERVICE);
     console.log(
       "CLOUD_SQL_CONNECTION_NAME =",
       process.env.CLOUD_SQL_CONNECTION_NAME,
     );
-    console.log("DATABASE_URL =", process.env.DATABASE_URL);
-    await prisma.$connect();
-    console.log("✅ Database connected");
 
-    httpServer.listen(PORT, HOST, () => {
-      console.log(`=================================`);
-      console.log(`🚀 Server running on http://${HOST}:${PORT}`);
-      console.log(`📍 Health: http://${HOST}:${PORT}/health`);
-      console.log(`=================================`);
+    httpServer.listen(PORT, HOST, async () => {
+      console.log(`🚀 Server running on ${HOST}:${PORT}`);
+
+      try {
+        await prisma.$connect();
+        console.log("✅ Database connected");
+      } catch (dbError) {
+        console.error("❌ Database failed:", dbError);
+      }
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error);
