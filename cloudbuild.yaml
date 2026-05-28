@@ -1,5 +1,4 @@
 steps:
-  # Step 1: Build Docker image (udah include build TypeScript di Dockerfile)
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
@@ -9,7 +8,6 @@ steps:
         '.'
       ]
 
-  # Step 2: Push ke Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
@@ -17,7 +15,6 @@ steps:
         'asia-southeast2-docker.pkg.dev/angelic-bee-477417-t8/skripsi-be/skripsi-be:$COMMIT_SHA'
       ]
 
-  # Step 3: Deploy ke Cloud Run dengan environment variables
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -29,10 +26,9 @@ steps:
         '--region', 'asia-southeast2',
         '--platform', 'managed',
         '--port', '8080',
-        '--allow-unauthenticated',  # ⚠️ Hati2, ini bikin endpoint publik!
-        '--add-cloudsql-instances', 'angelic-bee-477417-t8:asia-southeast2:skripsi-db',  # ← PENTING!
-        '--set-env-vars', 
-        'NODE_ENV=production,JWT_SECRET=${_JWT_SECRET},JWT_EXPIRES_IN=7d,DATABASE_URL=${_DATABASE_URL}',
+        '--allow-unauthenticated',
+        '--add-cloudsql-instances', 'angelic-bee-477417-t8:asia-southeast2:skripsi-db',
+        '--set-env-vars', 'NODE_ENV=production,JWT_SECRET=${_JWT_SECRET},JWT_EXPIRES_IN=7d,CLOUD_SQL_CONNECTION_NAME=angelic-bee-477417-t8:asia-southeast2:skripsi-db'
       ]
 
 images:
