@@ -35,4 +35,4 @@ ENV PORT=8080
 
 EXPOSE 8080
 
-CMD ["node", "dist/server.js"]
+CMD ["sh", "-c", "node dist/server.js 2>&1"]
