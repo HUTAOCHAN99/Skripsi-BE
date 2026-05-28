@@ -75,7 +75,7 @@ async function startServer() {
     if (process.env.K_SERVICE) {
       const connectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
       if (connectionName) {
-        const databaseUrl = `postgresql://postgres:Skripsi2026!@/skripsi_db?host=/cloudsql/${connectionName}`;
+       const databaseUrl = `postgresql://postgres:Skripsi2026%21@/skripsi_db?host=/cloudsql/${connectionName}`;
         process.env.DATABASE_URL = databaseUrl;
         console.log('✅ Cloud SQL configured with connection:', connectionName);
       } else {
