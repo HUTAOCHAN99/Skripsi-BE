@@ -1,21 +1,20 @@
-FROM node:20-slim AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Install openssl untuk Prisma (Alpine butuh ini)
+RUN apk add --no-cache openssl
+
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install dependencies
 RUN npm ci
 
-# Generate Prisma client
+# Generate Prisma client untuk Alpine (linux-musl)
 RUN npx prisma generate
 
-# Copy source code
 COPY . .
 
-# Build TypeScript
 RUN npm run build
 
 # ============ PRODUCTION STAGE ============
@@ -23,7 +22,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy built files
+# Install openssl juga di runtime
+RUN apk add --no-cache openssl
+
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
@@ -34,5 +35,4 @@ ENV PORT=8080
 
 EXPOSE 8080
 
-# Run migration THEN start server
 CMD ["node", "dist/server.js"]
