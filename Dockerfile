@@ -2,15 +2,15 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install openssl untuk Prisma (Alpine butuh ini)
-RUN apk add --no-cache openssl
+# Install OpenSSL dan dependencies untuk Prisma
+RUN apk add --no-cache openssl openssl-dev
 
 COPY package*.json ./
 COPY prisma ./prisma/
 
 RUN npm ci
 
-# Generate Prisma client untuk Alpine (linux-musl)
+# Generate Prisma client dengan binaryTargets yang sudah diupdate
 RUN npx prisma generate
 
 COPY . .
@@ -22,8 +22,8 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install openssl juga di runtime
-RUN apk add --no-cache openssl
+# Install OpenSSL juga di runtime (penting!)
+RUN apk add --no-cache openssl openssl-dev
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
@@ -32,6 +32,9 @@ COPY --from=builder /app/prisma ./prisma
 
 ENV NODE_ENV=production
 ENV PORT=8080
+
+# Pastikan Cloud SQL Proxy socket directory ada
+RUN mkdir -p /cloudsql
 
 EXPOSE 8080
 
