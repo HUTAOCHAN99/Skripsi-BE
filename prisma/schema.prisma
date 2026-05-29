@@ -124,3 +124,27 @@ enum StatusSidang {
   COMPLETED
   CANCELLED
 }
+
+model Berkas {
+  id          String   @id @default(cuid())
+  mahasiswaId String
+  judul       String
+  jenis       String   // 'proposal', 'bab1', 'bab2', 'full_skripsi', 'revisi'
+  fileName    String   // Nama asli file
+  filePath    String   // Path di server
+  fileSize    Int      // Ukuran dalam bytes
+  mimeType    String   // application/pdf, application/msword, dll
+  status      StatusBerkas @default(PENDING)
+  catatan     String?
+  tglUpload   DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  mahasiswa   Mahasiswa @relation(fields: [mahasiswaId], references: [id])
+}
+
+enum StatusBerkas {
+  PENDING
+  APPROVED
+  REJECTED
+}
