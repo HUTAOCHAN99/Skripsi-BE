@@ -10,6 +10,7 @@ import pengajuanRoutes from "./routes/pengajuanRoutes";
 import bimbinganRoutes from "./routes/bimbinganRoutes";
 import sidangRoutes from "./routes/sidangRoutes";
 import dosenRoutes from "./routes/dosenRoutes";
+import mahasiswaRoutes from "./routes/mahasiswaRoutes";
 
 dotenv.config();
 
@@ -58,7 +59,7 @@ app.use("/api/pengajuan", pengajuanRoutes);
 app.use("/api/bimbingan", bimbinganRoutes);
 app.use("/api/sidang", sidangRoutes);
 app.use("/api/dosen", dosenRoutes);
-app.use("/api/mahasiswa", require("./routes/mahasiswaRoutes").default);
+app.use("/api/mahasiswa", mahasiswaRoutes); // ✅ TAMBAHKAN ROUTE INI
 
 // ============ HEALTH CHECK ============
 app.get("/health", (req, res) => {
@@ -82,10 +83,8 @@ async function startServer() {
       const connectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
 
       if (connectionName) {
-        const databaseUrl = `postgresql://postgres:Skripsi2026%21@localhost:5432/skripsi_db?host=/cloudsql/${connectionName}&socket=/cloudsql/${connectionName}`;
-
+        const databaseUrl = `postgresql://postgres:Skripsi2026%21@/skripsi_db?host=/cloudsql/${connectionName}`;
         process.env.DATABASE_URL = databaseUrl;
-
         console.log("✅ Cloud SQL configured:", connectionName);
       } else {
         console.error("❌ CLOUD_SQL_CONNECTION_NAME missing");
