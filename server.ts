@@ -58,6 +58,7 @@ app.use("/api/pengajuan", pengajuanRoutes);
 app.use("/api/bimbingan", bimbinganRoutes);
 app.use("/api/sidang", sidangRoutes);
 app.use("/api/dosen", dosenRoutes);
+app.use("/api/mahasiswa", require("./routes/mahasiswaRoutes").default);
 
 // ============ HEALTH CHECK ============
 app.get("/health", (req, res) => {
