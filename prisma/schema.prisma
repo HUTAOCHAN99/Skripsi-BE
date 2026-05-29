@@ -33,6 +33,7 @@ model Mahasiswa {
   logBimbingan   LogBimbingan[]
   user           User             @relation(fields: [userId], references: [id])
   pengajuanJudul PengajuanJudul[]
+  berkas         Berkas[]   
 }
 
 model Dosen {
