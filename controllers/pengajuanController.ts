@@ -98,7 +98,7 @@ export const getPengajuanByMahasiswa = async (req: AuthRequest, res: Response) =
 };
 
 // ============ ADMIN & DOSEN ============
-// Admin & Dosen melihat semua pengajuan (tapi dengan filter berbeda di frontend)
+// Admin & Dosen melihat semua pengajuan (Admin: untuk approve, Dosen: untuk monitoring)
 export const getAllPengajuan = async (req: AuthRequest, res: Response) => {
   try {
     const userRole = req.user?.role;
@@ -107,7 +107,7 @@ export const getAllPengajuan = async (req: AuthRequest, res: Response) => {
     let pengajuan;
     
     if (userRole === 'ADMIN') {
-      // Admin melihat SEMUA pengajuan (untuk monitoring)
+      // Admin melihat SEMUA pengajuan (untuk di-approve/reject)
       pengajuan = await prisma.pengajuanJudul.findMany({
         include: {
           mahasiswa: {
@@ -129,25 +129,13 @@ export const getAllPengajuan = async (req: AuthRequest, res: Response) => {
         orderBy: { createdAt: 'desc' }
       });
     } else if (userRole === 'DOSEN') {
-      // Dosen hanya melihat pengajuan dari mahasiswa bimbingannya
-      const dosen = await prisma.dosen.findUnique({
-        where: { userId: userId! }
-      });
-      
-      if (!dosen) {
-        return res.status(404).json({ error: 'Dosen tidak ditemukan' });
-      }
-      
+      // Dosen hanya melihat pengajuan yang sudah disetujui (untuk monitoring)
       pengajuan = await prisma.pengajuanJudul.findMany({
         where: {
-          OR: [
-            { dosenPembimbingId: dosen.id }, // Sudah menjadi pembimbing
-            { 
-              status: 'PENDING',
-              // Untuk pengajuan baru yang belum ada dosen pembimbing
-              // Bisa ditampilkan semua atau sesuai kebijakan
-            }
-          ]
+          status: 'APPROVED',
+          dosenPembimbingId: {
+            not: null
+          }
         },
         include: {
           mahasiswa: {
@@ -166,7 +154,7 @@ export const getAllPengajuan = async (req: AuthRequest, res: Response) => {
             }
           }
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { tglApproved: 'desc' }
       });
     } else {
       return res.status(403).json({ error: 'Unauthorized' });
@@ -182,11 +170,10 @@ export const getAllPengajuan = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// ============ HANYA DOSEN ============
-// Dosen menyetujui pengajuan judul
+// ============ HANYA ADMIN ============
+// Admin menyetujui pengajuan judul
 export const approvePengajuan = async (req: AuthRequest, res: Response) => {
   try {
-    // ✅ PERBAIKI: Konversi id ke string
     const rawId = req.params.id;
     const id = getParamId(rawId);
     
@@ -194,24 +181,28 @@ export const approvePengajuan = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'ID pengajuan tidak valid' });
     }
     
-    const { catatan } = req.body;
-    const userId = req.user?.userId;
+    const { dosenPembimbingId, catatan } = req.body;
     const userRole = req.user?.role;
     
-    // VALIDASI: Hanya DOSEN yang bisa approve
-    if (userRole !== 'DOSEN') {
+    // ✅ VALIDASI: Hanya ADMIN yang bisa approve
+    if (userRole !== 'ADMIN') {
       return res.status(403).json({ 
-        error: 'Hanya dosen yang berwenang menyetujui pengajuan judul' 
+        error: 'Hanya admin yang berwenang menyetujui pengajuan judul' 
       });
     }
     
-    // Dapatkan data dosen
+    // Wajib pilih dosen pembimbing
+    if (!dosenPembimbingId) {
+      return res.status(400).json({ error: 'Dosen pembimbing wajib dipilih' });
+    }
+    
+    // Cek apakah dosen ada
     const dosen = await prisma.dosen.findUnique({
-      where: { userId: userId! }
+      where: { id: dosenPembimbingId }
     });
     
     if (!dosen) {
-      return res.status(404).json({ error: 'Data dosen tidak ditemukan' });
+      return res.status(404).json({ error: 'Dosen pembimbing tidak ditemukan' });
     }
     
     // Cek apakah pengajuan ada
@@ -231,12 +222,9 @@ export const approvePengajuan = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: `Pengajuan sudah ${pengajuan.status.toLowerCase()}` });
     }
     
-    // VALIDASI: Apakah dosen ini yang menjadi pembimbing?
-    // Jika pengajuan sudah memiliki dosenPembimbingId, cek kecocokan
-    if (pengajuan.dosenPembimbingId && pengajuan.dosenPembimbingId !== dosen.id) {
-      return res.status(403).json({ 
-        error: 'Anda tidak berwenang menyetujui pengajuan ini (bukan mahasiswa bimbingan Anda)' 
-      });
+    // Cek kuota dosen
+    if (dosen.terisi >= dosen.kuota) {
+      return res.status(400).json({ error: `Kuota bimbingan dosen ${dosen.nama} sudah penuh (${dosen.kuota}/${dosen.kuota})` });
     }
     
     // Approve pengajuan
@@ -258,7 +246,7 @@ export const approvePengajuan = async (req: AuthRequest, res: Response) => {
     
     res.json({
       success: true,
-      message: 'Pengajuan judul berhasil disetujui',
+      message: `Pengajuan judul berhasil disetujui dengan dosen pembimbing ${dosen.nama}`,
       data: updated
     });
   } catch (error) {
@@ -267,10 +255,9 @@ export const approvePengajuan = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Dosen menolak pengajuan judul
+// Admin menolak pengajuan judul
 export const rejectPengajuan = async (req: AuthRequest, res: Response) => {
   try {
-    // ✅ PERBAIKI: Konversi id ke string
     const rawId = req.params.id;
     const id = getParamId(rawId);
     
@@ -279,28 +266,18 @@ export const rejectPengajuan = async (req: AuthRequest, res: Response) => {
     }
     
     const { catatan } = req.body;
-    const userId = req.user?.userId;
     const userRole = req.user?.role;
     
-    // VALIDASI: Hanya DOSEN yang bisa reject
-    if (userRole !== 'DOSEN') {
+    // ✅ VALIDASI: Hanya ADMIN yang bisa reject
+    if (userRole !== 'ADMIN') {
       return res.status(403).json({ 
-        error: 'Hanya dosen yang berwenang menolak pengajuan judul' 
+        error: 'Hanya admin yang berwenang menolak pengajuan judul' 
       });
     }
     
     // Wajib ada catatan penolakan
     if (!catatan) {
       return res.status(400).json({ error: 'Alasan penolakan wajib diisi' });
-    }
-    
-    // Dapatkan data dosen
-    const dosen = await prisma.dosen.findUnique({
-      where: { userId: userId! }
-    });
-    
-    if (!dosen) {
-      return res.status(404).json({ error: 'Data dosen tidak ditemukan' });
     }
     
     // Cek apakah pengajuan ada
@@ -317,20 +294,12 @@ export const rejectPengajuan = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: `Pengajuan sudah ${pengajuan.status.toLowerCase()}` });
     }
     
-    // VALIDASI: Apakah dosen ini yang menjadi pembimbing?
-    if (pengajuan.dosenPembimbingId && pengajuan.dosenPembimbingId !== dosen.id) {
-      return res.status(403).json({ 
-        error: 'Anda tidak berwenang menolak pengajuan ini (bukan mahasiswa bimbingan Anda)' 
-      });
-    }
-    
     // Reject pengajuan
     const updated = await prisma.pengajuanJudul.update({
       where: { id },
       data: {
         status: 'REJECTED',
         catatan: catatan,
-        dosenPembimbingId: dosen.id, // Tetap catat siapa yang menolak
         tglApproved: new Date()
       }
     });
@@ -346,11 +315,9 @@ export const rejectPengajuan = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// ============ ADMIN ONLY ============
-// Admin bisa assign ulang dosen pembimbing (jika diperlukan)
-export const assignDosenPembimbing = async (req: AuthRequest, res: Response) => {
+// Admin assign ulang dosen pembimbing (untuk pengajuan yang sudah approved)
+export const reassignDosenPembimbing = async (req: AuthRequest, res: Response) => {
   try {
-    // ✅ PERBAIKI: Konversi id ke string
     const rawId = req.params.id;
     const id = getParamId(rawId);
     
@@ -361,9 +328,9 @@ export const assignDosenPembimbing = async (req: AuthRequest, res: Response) => 
     const { dosenPembimbingId } = req.body;
     const userRole = req.user?.role;
     
-    // Hanya ADMIN yang bisa assign ulang
+    // Hanya ADMIN yang bisa reassign
     if (userRole !== 'ADMIN') {
-      return res.status(403).json({ error: 'Hanya admin yang dapat mengassign dosen pembimbing' });
+      return res.status(403).json({ error: 'Hanya admin yang dapat mengassign ulang dosen pembimbing' });
     }
     
     if (!dosenPembimbingId) {
@@ -371,21 +338,33 @@ export const assignDosenPembimbing = async (req: AuthRequest, res: Response) => 
     }
     
     // Cek apakah dosen ada
-    const dosen = await prisma.dosen.findUnique({
+    const dosenBaru = await prisma.dosen.findUnique({
       where: { id: dosenPembimbingId }
     });
     
-    if (!dosen) {
+    if (!dosenBaru) {
       return res.status(404).json({ error: 'Dosen tidak ditemukan' });
     }
     
-    // Cek apakah pengajuan ada
+    // Cek apakah pengajuan ada dan sudah approved
     const pengajuan = await prisma.pengajuanJudul.findUnique({
       where: { id }
     });
     
     if (!pengajuan) {
       return res.status(404).json({ error: 'Pengajuan tidak ditemukan' });
+    }
+    
+    if (pengajuan.status !== 'APPROVED') {
+      return res.status(400).json({ error: 'Hanya pengajuan yang sudah disetujui yang bisa diubah dosen pembimbingnya' });
+    }
+    
+    // Kurangi kuota dosen lama jika ada
+    if (pengajuan.dosenPembimbingId) {
+      await prisma.dosen.update({
+        where: { id: pengajuan.dosenPembimbingId },
+        data: { terisi: { decrement: 1 } }
+      });
     }
     
     // Update dosen pembimbing
@@ -396,13 +375,19 @@ export const assignDosenPembimbing = async (req: AuthRequest, res: Response) => 
       }
     });
     
+    // Tambah kuota dosen baru
+    await prisma.dosen.update({
+      where: { id: dosenPembimbingId },
+      data: { terisi: { increment: 1 } }
+    });
+    
     res.json({
       success: true,
-      message: 'Dosen pembimbing berhasil diassign',
+      message: `Dosen pembimbing berhasil diubah menjadi ${dosenBaru.nama}`,
       data: updated
     });
   } catch (error) {
-    console.error('Assign dosen error:', error);
+    console.error('Reassign dosen error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

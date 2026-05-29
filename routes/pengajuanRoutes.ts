@@ -20,7 +20,7 @@ router.get('/me', authenticate, authorize('MAHASISWA'), getPengajuanByMahasiswa)
 router.get('/', authenticate, authorize('ADMIN', 'DOSEN'), getAllPengajuan);
 
 // ⚠️ HANYA DOSEN yang bisa approve/reject (BUKAN Admin!)
-router.put('/:id/approve', authenticate, authorize('DOSEN'), approvePengajuan);
-router.put('/:id/reject', authenticate, authorize('DOSEN'), rejectPengajuan);
+router.put('/:id/approve', authenticate, authorize('ADMIN'), approvePengajuan);
+router.put('/:id/reject', authenticate, authorize('ADMIN'), rejectPengajuan);
 
 export default router;
