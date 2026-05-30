@@ -1,6 +1,8 @@
+import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
+
 import { createServer } from "http";
 import { Server } from "socket.io";
 import prisma from "./config/database";
@@ -11,8 +13,6 @@ import bimbinganRoutes from "./routes/bimbinganRoutes";
 import sidangRoutes from "./routes/sidangRoutes";
 import dosenRoutes from "./routes/dosenRoutes";
 import mahasiswaRoutes from "./routes/mahasiswaRoutes";
-
-dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
@@ -79,18 +79,6 @@ const HOST = "0.0.0.0";
 
 async function startServer() {
   try {
-    if (process.env.K_SERVICE) {
-      const connectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
-
-      if (connectionName) {
-        const databaseUrl = `postgresql://postgres:Skripsi2026%21@/skripsi_db?host=/cloudsql/${connectionName}`;
-        process.env.DATABASE_URL = databaseUrl;
-        console.log("✅ Cloud SQL configured:", connectionName);
-      } else {
-        console.error("❌ CLOUD_SQL_CONNECTION_NAME missing");
-      }
-    }
-
     console.log("K_SERVICE =", process.env.K_SERVICE);
     console.log(
       "CLOUD_SQL_CONNECTION_NAME =",
