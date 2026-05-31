@@ -1,14 +1,6 @@
-<<<<<<< HEAD
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-=======
-import dotenv from "dotenv";
-dotenv.config();
-import express from "express";
-import cors from "cors";
-
->>>>>>> d045269800f35fa97086bc9926614514303d114e
 import { createServer } from "http";
 import { Server } from "socket.io";
 import prisma from "./config/database";
@@ -18,12 +10,8 @@ import pengajuanRoutes from "./routes/pengajuanRoutes";
 import bimbinganRoutes from "./routes/bimbinganRoutes";
 import sidangRoutes from "./routes/sidangRoutes";
 import dosenRoutes from "./routes/dosenRoutes";
-<<<<<<< HEAD
 
 dotenv.config();
-=======
-import mahasiswaRoutes from "./routes/mahasiswaRoutes";
->>>>>>> d045269800f35fa97086bc9926614514303d114e
 
 const app = express();
 const httpServer = createServer(app);
@@ -70,10 +58,6 @@ app.use("/api/pengajuan", pengajuanRoutes);
 app.use("/api/bimbingan", bimbinganRoutes);
 app.use("/api/sidang", sidangRoutes);
 app.use("/api/dosen", dosenRoutes);
-<<<<<<< HEAD
-=======
-app.use("/api/mahasiswa", mahasiswaRoutes); // ✅ TAMBAHKAN ROUTE INI
->>>>>>> d045269800f35fa97086bc9926614514303d114e
 
 // ============ HEALTH CHECK ============
 app.get("/health", (req, res) => {
@@ -93,7 +77,6 @@ const HOST = "0.0.0.0";
 
 async function startServer() {
   try {
-<<<<<<< HEAD
     if (process.env.K_SERVICE) {
       const connectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
 
@@ -108,8 +91,6 @@ async function startServer() {
       }
     }
 
-=======
->>>>>>> d045269800f35fa97086bc9926614514303d114e
     console.log("K_SERVICE =", process.env.K_SERVICE);
     console.log(
       "CLOUD_SQL_CONNECTION_NAME =",
