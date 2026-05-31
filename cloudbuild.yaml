@@ -31,7 +31,7 @@ steps:
         '--port', '8080',
         '--allow-unauthenticated',
         '--add-cloudsql-instances', 'angelic-bee-477417-t8:asia-southeast2:skripsi-db',
-        '--set-env-vars', 'NODE_ENV=production,JWT_SECRET=${_JWT_SECRET},JWT_EXPIRES_IN=7d,CLOUD_SQL_CONNECTION_NAME=angelic-bee-477417-t8:asia-southeast2:skripsi-db'
+        '--set-env-vars', 'NODE_ENV=production,JWT_SECRET=${_JWT_SECRET},JWT_EXPIRES_IN=7d,CLOUD_SQL_CONNECTION_NAME=angelic-bee-477417-t8:asia-southeast2:skripsi-db,FRONTEND_URL=https://angelic-bee-477417-t8.et.r.appspot.com'
       ]
 
 images:
