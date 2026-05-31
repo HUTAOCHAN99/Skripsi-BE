@@ -1,41 +1,57 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt';
 
-export interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    role: string;
-  };
+type UserRole = 'ADMIN' | 'DOSEN' | 'MAHASISWA';
+
+interface JwtPayload {
+  userId: string;
+  role: UserRole;
 }
 
-export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
+export interface AuthRequest extends Request {
+  user?: JwtPayload;
+}
+
+export const authenticate = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
   const authHeader = req.headers.authorization;
-  
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized: No token provided' });
+    return res.status(401).json({
+      error: 'Unauthorized: No token provided',
+    });
   }
-  
+
   const token = authHeader.split(' ')[1];
-  
+
   try {
-    const decoded = verifyToken(token);
+    const decoded = verifyToken(token) as JwtPayload;
     req.user = decoded;
     next();
-  } catch (error) {
-    return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+  } catch {
+    return res.status(401).json({
+      error: 'Unauthorized: Invalid token',
+    });
   }
 };
 
-export const authorize = (...roles: string[]) => {
+export const authorize = (...roles: UserRole[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({
+        error: 'Unauthorized',
+      });
     }
-    
+
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+      return res.status(403).json({
+        error: 'Forbidden: Insufficient permissions',
+      });
     }
-    
+
     next();
   };
 };

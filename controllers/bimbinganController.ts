@@ -42,7 +42,7 @@ export const createLogBimbingan = async (req: AuthRequest, res: Response) => {
         tanggal: new Date(tanggal),
         topik,
         catatan,
-        status: 'PENDING'
+        status: 'APPROVED'
       },
       include: {
         mahasiswa: true,
